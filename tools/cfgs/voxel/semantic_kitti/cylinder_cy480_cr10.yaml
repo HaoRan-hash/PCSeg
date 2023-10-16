@@ -3,7 +3,7 @@ MODALITY: 'cylinder'
 DATA:
     DATASET: 'semantickitti'     # choices: ['nuscenes', 'semantickitti', 'scribblekitti']
     PETRELOSS_CONFIG: None
-    DATA_PATH: 'data_root/SemanticKITTI/sequences/'  # hint: customize your data path
+    DATA_PATH: '/mnt/Disk16T/chenhr/semantic_kitti/sequences'  # hint: customize your data path
     CYLINDER_GRID_SIZE: [ 480, 360, 32 ]
     CYLINDER_SPACE_MAX: [ 50, 180, 2 ]
     CYLINDER_SPACE_MIN: [ 0, -180, -4 ]
@@ -19,10 +19,10 @@ MODEL:
     LABEL_SMOOTHING: 0.0
     INIT_SIZE: 32
     POINT_REFINEMENT: True
-    IF_DIST: True   # True: multi-gpus, False: single gpu
+    IF_DIST: False   # True: multi-gpus, False: single gpu
 
 OPTIM:
-    BATCH_SIZE_PER_GPU: 12
+    BATCH_SIZE_PER_GPU: 4
     NUM_EPOCHS: 36
     OPTIMIZER: sgd
     LR_PER_SAMPLE: 0.02

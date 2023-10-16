@@ -60,7 +60,7 @@ class SemkittiCylinderDataset(data.Dataset):
             "unlabeled",  # ignored
             "car", "bicycle", "motorcycle", "truck", "other-vehicle", "person", "bicyclist", "motorcyclist",  # dynamic
             "road", "parking", "sidewalk", "other-ground", "building", "fence", "vegetation", "trunk", "terrain", "pole", "traffic-sign"  # static
-        ]
+        ]   # 长度是20
         self.root_path = root_path if root_path is not None else self.data_cfgs.DATA_PATH
         self.logger = logger
 
@@ -142,7 +142,7 @@ class SemkittiCylinderDataset(data.Dataset):
             )
 
         xyz_pol = cart2polar(point[:, :3])
-        xyz_pol[:, 1] = xyz_pol[:, 1] / np.pi * 180.
+        xyz_pol[:, 1] = xyz_pol[:, 1] / np.pi * 180.   # 弧度转角度
         max_bound = self.cylinder_space_max
         min_bound = self.cylinder_space_min
         
@@ -150,7 +150,7 @@ class SemkittiCylinderDataset(data.Dataset):
         cur_grid_size = self.grid_size
         intervals = crop_range / (cur_grid_size - 1)
 
-        point_coord = (np.floor((np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(np.int)
+        point_coord = (np.floor((np.clip(xyz_pol, min_bound, max_bound) - min_bound) / intervals)).astype(np.int32)
         voxel_coord, voxel_label, inds, inverse_map = voxelize_with_label(
             point_coord, point_label, len(self.class_names))
         voxel_centers = (voxel_coord.astype(np.float32) + 0.5) * intervals + min_bound
@@ -163,11 +163,11 @@ class SemkittiCylinderDataset(data.Dataset):
             'name': pc_data['path'],
             'point_feature': point_feature.astype(np.float32),
             'point_coord': point_coord.astype(np.float32),
-            'point_label': point_label.astype(np.int),
+            'point_label': point_label.astype(np.int64),
             'voxel_feature': voxel_feature.astype(np.float32),
-            'voxel_coord': voxel_coord.astype(np.int),
-            'voxel_label': voxel_label.astype(np.int),
-            'inverse_map': inverse_map.astype(np.int),
+            'voxel_coord': voxel_coord.astype(np.int32),
+            'voxel_label': voxel_label.astype(np.int64),
+            'inverse_map': inverse_map.astype(np.int32),
             'num_points': np.array([num_points_current_frame]),
         })
 

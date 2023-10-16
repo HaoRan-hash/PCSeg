@@ -151,6 +151,7 @@ class Trainer:
             merge_all_iters_to_one_epoch=args.merge_all_iters_to_one_epoch,
             total_epochs=self.total_epoch,
         )
+        # temp = dataset[0]   # debug
         self.train_set = dataset
         self.loader = loader
         self.sampler = sampler
@@ -545,7 +546,7 @@ class Trainer:
 
 def main():
     args, cfgs = parse_config()
-    trainer = Trainer(args, cfgs)
+    trainer = Trainer(args, cfgs)   # 进行初始化
 
     if args.eval:
         trainer.cur_epoch -= 1
