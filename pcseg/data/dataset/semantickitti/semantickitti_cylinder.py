@@ -105,7 +105,7 @@ class SemkittiCylinderDataset(data.Dataset):
         'Generates one sample of data'
         pc_data = self.point_cloud_dataset[index]
         point_label = pc_data['labels'].reshape(-1)
-        point = pc_data['xyzret'][:, :4] # pc_data['xyzret'][:, :5]
+        point = pc_data['xyzret'][:, :-1]
 
         num_points_current_frame = point.shape[0]
 
@@ -122,6 +122,10 @@ class SemkittiCylinderDataset(data.Dataset):
                 if_rotate=self.if_rotate,
                 if_tta=self.if_tta,
             )
+            
+            # random drop scene flow
+            if np.random.rand() < 0.2:
+                point[:, -3:] = 0
         
         elif self.if_tta:
             self.if_flip = False
