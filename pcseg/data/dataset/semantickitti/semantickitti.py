@@ -97,6 +97,13 @@ class SemantickittiDataset(data.Dataset):
 
     def __getitem__(self, index):
         raw_data = np.fromfile(self.annos[index], dtype=np.float32).reshape((-1, 4))
+        
+        # load scene flow
+        try:
+            flow_data = np.load(self.annos[index].replace('velodyne', 'flow')[:-3] + 'npy')
+        except:
+            flow_data = np.zeros((len(raw_data), 3), dtype=np.float32)
+        raw_data = np.concatenate((raw_data, flow_data), axis=1)
 
         if self.split == 'test':
             annotated_data = np.expand_dims(np.zeros_like(raw_data[:, 0], dtype=int), axis=1)
@@ -118,6 +125,12 @@ class SemantickittiDataset(data.Dataset):
         if self.augment == 'GlobalAugment_LP':
             if self.split == 'train' and prob == 1:
                 raw_data1 = np.fromfile(self.annos_another[index], dtype=np.float32).reshape((-1, 4))
+                
+                try:
+                    flow_data1 = np.load(self.annos_another[index].replace('velodyne', 'flow')[:-3] + 'npy')
+                except:
+                    flow_data1 = np.zeros((len(raw_data1), 3), dtype=np.float32)
+                raw_data1 = np.concatenate((raw_data1, flow_data1), axis=1)
 
                 if self.if_scribble:  # ScribbleKITTI (weak label)
                     annos1 = self.annos_another[index].replace('SemanticKITTI', 'ScribbleKITTI')
@@ -141,6 +154,12 @@ class SemantickittiDataset(data.Dataset):
             
             elif self.split == 'train' and prob == 0:
                 raw_data1 = np.fromfile(self.annos_another[index], dtype=np.float32).reshape((-1, 4))
+                
+                try:
+                    flow_data1 = np.load(self.annos_another[index].replace('velodyne', 'flow')[:-3] + 'npy')
+                except:
+                    flow_data1 = np.zeros((len(raw_data1), 3), dtype=np.float32)
+                raw_data1 = np.concatenate((raw_data1, flow_data1), axis=1)
 
                 if self.if_scribble:  # ScribbleKITTI (weak label)
                     annos1 = self.annos_another[index].replace('SemanticKITTI', 'ScribbleKITTI')
