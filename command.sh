@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=6,7 python -m torch.distributed.launch --nproc_per_node=2 train.py --launcher=pytorch --amp --cfg_file=tools/cfgs/voxel/semantic_kitti/cylinder_cy480_cr10.yaml --extra_tag=scene_flow_2 --tta --eval
