@@ -5,6 +5,7 @@ from tools.utils.common import common_utils
 
 from .dataset.semantickitti import SemkittiRangeViewDataset, SemkittiVoxelDataset, SemkittiCylinderDataset, SemkittiFusionDataset
 from .dataset.waymo import WaymoVoxelDataset, WaymoCylinderDataset, WaymoFusionDataset
+from .dataset.nuscenes import NuscCylinderDataset
 
 __all__ = {
     # SemanticKITTI
@@ -17,6 +18,9 @@ __all__ = {
     'WaymoVoxelDataset': WaymoVoxelDataset,
     'WaymoCylinderDataset': WaymoCylinderDataset,
     'WaymoFusionDataset': WaymoFusionDataset,
+    
+    # Nuscenes
+    'NuscCylinderDataset': NuscCylinderDataset
 }
 
 

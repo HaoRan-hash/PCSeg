@@ -1,0 +1,39 @@
+MODALITY: 'cylinder'
+
+DATA:
+    DATASET: 'nuscenes'     # choices: ['nuscenes', 'semantickitti', 'scribblekitti']
+    PETRELOSS_CONFIG: None
+    DATA_PATH: '/mnt/Disk16T/chenhr/nuscenes'  # hint: customize your data path
+    CYLINDER_GRID_SIZE: [ 480, 360, 32 ]
+    CYLINDER_SPACE_MAX: [ 50, 180, 3 ]
+    CYLINDER_SPACE_MIN: [ 0, -180, -5 ]
+    AUGMENT: 'GlobalAugment_LP'  # choices: ['GlobalAugment', 'GlobalAugment_LP']
+    TRAINVAL: False              # train set: train + val
+    TTA: False
+    USE_SCENE_FLOW: False
+    SPLIT: train_val
+
+MODEL:
+    NAME: Cylinder_TS
+    IGNORE_LABEL: 0
+    IN_FEATURE_DIM: 9    # 10 for waymo
+    DROPOUT_P: 0.0
+    LABEL_SMOOTHING: 0.0
+    INIT_SIZE: 32
+    POINT_REFINEMENT: True
+    IF_DIST: True   # True: multi-gpus, False: single gpu
+
+OPTIM:
+    BATCH_SIZE_PER_GPU: 8
+    NUM_EPOCHS: 50
+    OPTIMIZER: sgd
+    LR_PER_SAMPLE: 0.005
+    WEIGHT_DECAY: 0.0001
+    MOMENTUM: 0.9
+    NESTEROV: True
+    GRAD_NORM_CLIP: 10
+    SCHEDULER: linear_warmup_with_cosdecay
+    WARMUP_EPOCH: 1
+    BETA1: 0.9
+    BETA2: 0.999
+    EPS: 0.00000001
