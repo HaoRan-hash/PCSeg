@@ -206,7 +206,7 @@ class SemkittiCylinderDataset(data.Dataset):
         ret['offset'] = torch.tensor(list(accumulate(offset))).int()
         ret['name'] = data_dict['name']
 
-        for k, v in data_dict.items():
+        for k, v in data_dict.items():   # 在kitti和nuscenes中暂时用不到
             if k.startswith('flag'):
                 ret[k] = data_dict[k]
             elif k.startswith('augmented_point_coord'):
@@ -224,46 +224,50 @@ class SemkittiCylinderDataset(data.Dataset):
     
     @staticmethod
     def collate_batch_tta(batch_list):
-        batch_list = batch_list[0]
-        data_dict = defaultdict(list)
-        for cur_sample in batch_list:
-            for key, val in cur_sample.items():
-                data_dict[key].append(val)
-        batch_size = len(batch_list)
-        ret = {}
-        point_coord = []
-        voxel_coord = []
-        for i_batch in range(batch_size):
-            point_coord.append(
-                np.pad(data_dict['point_coord'][i_batch], ((0, 0), (0, 1)), mode='constant', constant_values=i_batch))
-            voxel_coord.append(
-                np.pad(data_dict['voxel_coord'][i_batch], ((0, 0), (0, 1)), mode='constant', constant_values=i_batch))
+        ret_list = []
+        batch_list = list(zip(*batch_list))
+        for j in range(len(batch_list)):   # 循环vote_num次
+            batch_list_j = batch_list[j]
+            data_dict = defaultdict(list)
+            for cur_sample in batch_list_j:
+                for key, val in cur_sample.items():
+                    data_dict[key].append(val)
+            batch_size = len(batch_list_j)
+            ret = {}
+            point_coord = []
+            voxel_coord = []
+            for i_batch in range(batch_size):
+                point_coord.append(
+                    np.pad(data_dict['point_coord'][i_batch], ((0, 0), (0, 1)), mode='constant', constant_values=i_batch))
+                voxel_coord.append(
+                    np.pad(data_dict['voxel_coord'][i_batch], ((0, 0), (0, 1)), mode='constant', constant_values=i_batch))
 
-        ret['point_coord'] = torch.from_numpy(np.concatenate(point_coord)).type(torch.LongTensor)
-        ret['voxel_coord'] = torch.from_numpy(np.concatenate(voxel_coord)).type(torch.LongTensor)
+            ret['point_coord'] = torch.from_numpy(np.concatenate(point_coord)).type(torch.LongTensor)
+            ret['voxel_coord'] = torch.from_numpy(np.concatenate(voxel_coord)).type(torch.LongTensor)
 
-        ret['point_feature'] = torch.from_numpy(np.concatenate(data_dict['point_feature'])).type(torch.FloatTensor)
-        ret['point_label'] = torch.from_numpy(np.concatenate(data_dict['point_label'])).type(torch.LongTensor)
-        ret['voxel_feature'] = torch.from_numpy(np.concatenate(data_dict['voxel_feature'])).type(torch.FloatTensor)
-        ret['voxel_label'] = torch.from_numpy(np.concatenate(data_dict['voxel_label'])).type(torch.LongTensor)
-        ret['inverse_map'] = torch.from_numpy(np.concatenate(data_dict['inverse_map'])).type(torch.LongTensor)
-        ret['num_points']= torch.from_numpy(np.concatenate(data_dict['num_points'])).type(torch.LongTensor)
-        offset = [sample['voxel_coord'].shape[0] for sample in batch_list] 
-        ret['offset'] = torch.tensor(list(accumulate(offset))).int()
-        ret['name'] = data_dict['name']
+            ret['point_feature'] = torch.from_numpy(np.concatenate(data_dict['point_feature'])).type(torch.FloatTensor)
+            ret['point_label'] = torch.from_numpy(np.concatenate(data_dict['point_label'])).type(torch.LongTensor)
+            ret['voxel_feature'] = torch.from_numpy(np.concatenate(data_dict['voxel_feature'])).type(torch.FloatTensor)
+            ret['voxel_label'] = torch.from_numpy(np.concatenate(data_dict['voxel_label'])).type(torch.LongTensor)
+            ret['inverse_map'] = torch.from_numpy(np.concatenate(data_dict['inverse_map'])).type(torch.LongTensor)
+            ret['num_points']= torch.from_numpy(np.concatenate(data_dict['num_points'])).type(torch.LongTensor)
+            offset = [sample['voxel_coord'].shape[0] for sample in batch_list_j] 
+            ret['offset'] = torch.tensor(list(accumulate(offset))).int()
+            ret['name'] = data_dict['name']
 
-        for k, v in data_dict.items():
-            if k.startswith('flag'):
-                ret[k] = data_dict[k]
-            elif k.startswith('augmented_point_coord'):
-                temp = []
-                for i_batch in range(batch_size):
-                    temp.append(
-                        np.pad(data_dict[k][i_batch], ((0, 0), (0, 1)), mode='constant', constant_values=i_batch))
-                ret[k] = torch.from_numpy(np.concatenate(temp)).type(torch.LongTensor)
-            elif k.startswith('augmented_point_feature'):
-                ret[k] = torch.from_numpy(np.concatenate(data_dict[k])).type(torch.FloatTensor)
-            elif k.startswith('augmented_point_label') or k.startswith('augmented_inverse_map'):
-                ret[k] = torch.from_numpy(np.concatenate(data_dict[k])).type(torch.LongTensor)
+            for k, v in data_dict.items():
+                if k.startswith('flag'):
+                    ret[k] = data_dict[k]
+                elif k.startswith('augmented_point_coord'):
+                    temp = []
+                    for i_batch in range(batch_size):
+                        temp.append(
+                            np.pad(data_dict[k][i_batch], ((0, 0), (0, 1)), mode='constant', constant_values=i_batch))
+                    ret[k] = torch.from_numpy(np.concatenate(temp)).type(torch.LongTensor)
+                elif k.startswith('augmented_point_feature'):
+                    ret[k] = torch.from_numpy(np.concatenate(data_dict[k])).type(torch.FloatTensor)
+                elif k.startswith('augmented_point_label') or k.startswith('augmented_inverse_map'):
+                    ret[k] = torch.from_numpy(np.concatenate(data_dict[k])).type(torch.LongTensor)
+            ret_list.append(ret)
 
-        return ret
+        return ret_list
