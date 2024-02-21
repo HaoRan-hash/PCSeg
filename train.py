@@ -20,6 +20,7 @@ from pcseg.optim import build_optimizer, build_scheduler
 from tools.utils.common import common_utils, commu_utils
 from tools.utils.train.config import cfgs, cfg_from_list, cfg_from_yaml_file, log_config_to_file
 from tools.utils.train_utils import model_state_to_cpu
+import scipy
 
 
 def get_n_params(model):
@@ -88,6 +89,7 @@ def parse_config():
                         help='only perform evaluate')
     parser.add_argument('--eval_interval', type=int, default=50,
                         help='number of training epochs')
+    parser.add_argument('--tta', action='store_true', default=False)
     # == device configs ==
     parser.add_argument('--workers', type=int, default=5,  
                         help='number of workers for dataloader') 
@@ -151,7 +153,8 @@ class Trainer:
             merge_all_iters_to_one_epoch=args.merge_all_iters_to_one_epoch,
             total_epochs=self.total_epoch,
         )
-        # temp = dataset[0]   # debug
+        temp = dataset[0]   # debug
+        temp = dataset[1]
         self.train_set = dataset
         self.loader = loader
         self.sampler = sampler
@@ -493,6 +496,99 @@ class Trainer:
         return {}
 
 
+    def evaluate_tta(self, dataloader, prefix):
+        result_dir = self.log_dir / 'eval' / ('epoch_%s' % (self.cur_epoch+1))
+        result_dir.mkdir(parents=True, exist_ok=True)
+        dataset = dataloader.dataset
+
+        class_names = dataset.class_names
+
+        self.logger.info(f"*************** TRAINED EPOCH {self.cur_epoch+1} {prefix} EVALUATION *****************")
+        if self.rank == 0:
+            progress_bar = tqdm.tqdm(total=len(dataloader), leave=True, desc='eval', dynamic_ncols=True)
+        metric = {}
+        metric['hist_list'] = []
+
+        for i, batch_list in enumerate(dataloader):
+            for j, batch_dict in enumerate(batch_list):
+                load_data_to_gpu(batch_dict)
+
+                with torch.no_grad():
+                    ret_dict = self.model(batch_dict)
+                
+                temp = ret_dict['point_predict_logits']   # list, len(temp) = batch_size
+                point_labels = ret_dict['point_labels']
+                
+                if j == 0:
+                    point_predict_logits = temp
+                else:
+                    for k in range(len(point_predict_logits)):
+                        point_predict_logits[k] += temp[k]
+            
+            # logits to pred_label
+            for k in range(len(point_predict_logits)):
+                point_predict_logits[k] = scipy.special.softmax(point_predict_logits[k] / len(batch_list), axis=1).argmax(axis=1) 
+            point_predict = point_predict_logits
+
+            for pred, label in zip(point_predict, point_labels):
+                metric['hist_list'].append(fast_hist_crop(pred, label, self.unique_label))
+            
+            if self.rank == 0:
+                progress_bar.update()
+        
+        if self.rank == 0:
+            progress_bar.close()
+
+        if self.if_dist_train:
+            rank, world_size = common_utils.get_dist_info()
+            metric = common_utils.merge_results_dist([metric], world_size, tmpdir=result_dir / 'tmpdir')
+        
+        if self.rank != 0:
+            return {}
+        
+        if self.if_dist_train:
+            for key, val in metric[0].items():
+                for k in range(1, world_size):
+                    metric[0][key] += metric[k][key]
+            metric = metric[0]
+        
+        hist_list = metric['hist_list'][:len(dataset)]
+        iou = per_class_iu(sum(hist_list))
+        self.logger.info('Validation per class iou: ')
+
+        for class_name, class_iou in zip(class_names[1:], iou):
+            self.logger_tb.add_scalar(f"{prefix}/{class_name}", class_iou * 100, self.cur_epoch+1)
+        
+        val_miou = np.nanmean(iou) * 100
+        self.logger_tb.add_scalar(f"{prefix}_miou", val_miou, self.cur_epoch + 1)
+
+        # logger confusion matrix and
+        table_xy = PrettyTable()
+        table_xy.title = 'Validation iou'
+        table_xy.field_names = ["Classes", "IoU"]
+        table_xy.align = 'l'
+        table_xy.add_row(["All", round(val_miou, 4)])
+
+        for i in range(len(class_names[1:])):
+            table_xy.add_row([class_names[i+1], round(iou[i] * 100, 4)])
+        self.logger.info(table_xy)
+
+        dis_matrix = sum(hist_list)
+        table = PrettyTable()
+        table.title = 'Confusion matrix'
+        table.field_names = ["Classes"] + [k for k in class_names[1:]] + ["Points"]
+        table.align = 'l'
+
+        for i in range(len(class_names[1:])):
+            sum_pixel = sum([k for k in dis_matrix[i]])
+            row = [class_names[i + 1]] + [round(k/(sum_pixel +1e-8) * 100, 4) for k in dis_matrix[i]] + [sum_pixel, ]
+            table.add_row(row)
+        
+        self.logger.info(table)
+
+        return {}
+    
+    
     def train(self):
 
         with tqdm.trange(
@@ -509,6 +605,7 @@ class Trainer:
                 if (cur_epoch+1) % self.eval_interval == 0 or cur_epoch == self.total_epoch-1:
                     self.model.eval()
                     data_config = copy.deepcopy(self.cfgs.DATA)
+                    data_config.SPLIT = 'val'
                     _, test_loader, _ = build_dataloader(
                         data_cfgs=data_config,
                         modality=self.cfgs.MODALITY,
@@ -527,6 +624,7 @@ class Trainer:
             if len(tbar) == 0:
                 self.model.eval()
                 data_config = copy.deepcopy(self.cfgs.DATA)
+                data_config.SPLIT = 'val'
                 _, test_loader, _ = build_dataloader(
                     data_cfgs=data_config,
                     modality=self.cfgs.MODALITY,
@@ -552,6 +650,7 @@ def main():
         trainer.cur_epoch -= 1
         trainer.model.eval()
         data_config = copy.deepcopy(cfgs.DATA)
+        data_config.SPLIT = 'val'
         _, test_loader, _ = build_dataloader(
             data_cfgs=data_config,
             modality=cfgs.MODALITY,
@@ -561,8 +660,10 @@ def main():
             logger=trainer.logger,
             training=False,
         )
-
-        trainer.evaluate(test_loader, "val")
+        if args.tta:
+            trainer.evaluate_tta(test_loader, 'val_tta')
+        else:
+            trainer.evaluate(test_loader, "val")
         if trainer.if_dist_train:
             torch.distributed.barrier()
         time.sleep(1)
