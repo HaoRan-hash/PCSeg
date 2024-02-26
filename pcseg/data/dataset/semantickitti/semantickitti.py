@@ -24,7 +24,7 @@ class SemantickittiDataset(data.Dataset):
         class_names: list = None,
         root_path: str = None,
         logger = None,
-        if_scribble: bool = False,
+        if_scribble: bool = False
     ):
         super().__init__()
         self.data_cfgs = data_cfgs
@@ -36,16 +36,7 @@ class SemantickittiDataset(data.Dataset):
         self.train_val = data_cfgs.get('TRAINVAL', False)
         self.augment = data_cfgs.AUGMENT
         self.if_scribble = if_scribble
-
-        if self.training and not self.train_val:
-            self.split = 'train'
-        else:
-            if self.training and self.train_val:
-                self.split = 'train_val'
-            else:
-                self.split = 'val'
-        if self.tta:
-            self.split = 'test'
+        self.split = data_cfgs.SPLIT
 
         if self.split == 'train':
             self.seqs = ['00', '01', '02', '03', '04', '05', '06', '07', '09', '10']
@@ -123,7 +114,7 @@ class SemantickittiDataset(data.Dataset):
 
         prob = np.random.choice(2, 1)
         if self.augment == 'GlobalAugment_LP':
-            if self.split == 'train' and prob == 1:
+            if ('train' in self.split) and prob == 1:
                 raw_data1 = np.fromfile(self.annos_another[index], dtype=np.float32).reshape((-1, 4))
                 
                 try:
@@ -152,7 +143,7 @@ class SemantickittiDataset(data.Dataset):
                     annotated_data1,
                 )
             
-            elif self.split == 'train' and prob == 0:
+            elif ('train' in self.split) and prob == 0:
                 raw_data1 = np.fromfile(self.annos_another[index], dtype=np.float32).reshape((-1, 4))
                 
                 try:

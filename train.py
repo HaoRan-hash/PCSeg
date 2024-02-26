@@ -163,6 +163,8 @@ class Trainer:
             num_class = 17
         elif cfgs.DATA.DATASET == 'semantickitti' or cfgs.DATA.DATASET == 'scribblekitti':
             num_class = 20
+        elif cfgs.DATA.DATASET == 'semantickitti_multiscan':
+            num_class = 26
         elif cfgs.DATA.DATASET == 'waymo':
             num_class = 23
         
@@ -230,6 +232,8 @@ class Trainer:
             self.unique_label = np.array(list(range(16)))  # 0 is ignore
         elif cfgs.DATA.DATASET == 'semantickitti' or cfgs.DATA.DATASET == 'scribblekitti':
             self.unique_label = np.array(list(range(19)))  # 0 is ignore
+        elif cfgs.DATA.DATASET == 'semantickitti_multiscan':
+            self.unique_label = np.array(list(range(25)))  # 0 is ignore
         elif cfgs.DATA.DATASET == 'waymo':
             self.unique_label = np.array(list(range(22)))  # 0 is ignore
         else:

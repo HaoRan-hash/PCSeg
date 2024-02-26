@@ -136,7 +136,7 @@ class NuscenesDataset(data.Dataset):
         pc_data = {
             'xyzret': raw_data,
             'labels': annotated_data.astype(np.uint8),
-            'path': lidar_path,
+            'path': info['token'],
         }
 
         return pc_data
