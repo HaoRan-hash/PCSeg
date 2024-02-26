@@ -160,6 +160,8 @@ class Trainer:
             num_class = 17
         elif cfgs.DATA.DATASET == 'semantickitti' or cfgs.DATA.DATASET == 'scribblekitti':
             num_class = 20
+        elif cfgs.DATA.DATASET == 'semantickitti_multiscan':
+            num_class = 26
         elif cfgs.DATA.DATASET == 'waymo':
             num_class = 23
         
@@ -227,6 +229,8 @@ class Trainer:
             self.unique_label = np.array(list(range(16)))  # 0 is ignore
         elif cfgs.DATA.DATASET == 'semantickitti' or cfgs.DATA.DATASET == 'scribblekitti':
             self.unique_label = np.array(list(range(19)))  # 0 is ignore
+        elif cfgs.DATA.DATASET == 'semantickitti_multiscan':
+            self.unique_label = np.array(list(range(25)))  # 0 is ignore
         elif cfgs.DATA.DATASET == 'waymo':
             self.unique_label = np.array(list(range(22)))  # 0 is ignore
         else:
@@ -378,9 +382,9 @@ class Trainer:
                 point_predict_logits[k] = scipy.special.softmax(point_predict_logits[k] / len(batch_list), axis=1).argmax(axis=1) 
             point_predict = point_predict_logits
             
-            output = point_predict[0] + 1
+            output = point_predict[0]
             output = np.expand_dims(output,axis=1)
-            name = batch_dict['name']
+            name = batch_dict['name'][0]
             
             _, temp2 = name.split('/sequences/', 1)
             save_path = 'kitti_multiscan_submit' + '/sequences/' + temp2.replace('velodyne','predictions')[:-3]+'label'

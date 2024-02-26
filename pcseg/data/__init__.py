@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import DistributedSampler as _DistributedSampler
 from tools.utils.common import common_utils
 
-from .dataset.semantickitti import SemkittiRangeViewDataset, SemkittiVoxelDataset, SemkittiCylinderDataset, SemkittiFusionDataset
+from .dataset.semantickitti import SemkittiRangeViewDataset, SemkittiVoxelDataset, SemkittiCylinderDataset, SemkittiFusionDataset, SemkittiMultiscanCylinderDataset
 from .dataset.waymo import WaymoVoxelDataset, WaymoCylinderDataset, WaymoFusionDataset
 from .dataset.nuscenes import NuscCylinderDataset
 
@@ -13,6 +13,7 @@ __all__ = {
     'SemkittiVoxelDataset': SemkittiVoxelDataset,
     'SemkittiCylinderDataset': SemkittiCylinderDataset,
     'SemkittiFusionDataset': SemkittiFusionDataset,
+    'SemkittiMultiscanCylinderDataset': SemkittiMultiscanCylinderDataset,
 
     # Waymo
     'WaymoVoxelDataset': WaymoVoxelDataset,
@@ -80,6 +81,8 @@ def build_dataloader(
             db = 'NuscCylinderDataset'
         elif data_cfgs.DATASET == 'semantickitti' or data_cfgs.DATASET == 'scribblekitti':
             db = 'SemkittiCylinderDataset'
+        elif data_cfgs.DATASET == 'semantickitti_multiscan':
+            db = 'SemkittiMultiscanCylinderDataset'
         elif data_cfgs.DATASET == 'waymo':
             db = 'WaymoCylinderDataset'
         else:

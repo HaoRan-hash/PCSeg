@@ -378,9 +378,9 @@ class Trainer:
                 point_predict_logits[k] = scipy.special.softmax(point_predict_logits[k] / len(batch_list), axis=1).argmax(axis=1) 
             point_predict = point_predict_logits
             
-            output = point_predict[0] + 1
+            output = point_predict[0]
             output = np.expand_dims(output,axis=1)
-            name = batch_dict['name']
+            name = batch_dict['name'][0]
             
             save_path = 'nuscenes_submit' + '/lidarseg/test/' + f'{name}_lidarseg.bin'
             if not os.path.exists(os.path.dirname(save_path)):

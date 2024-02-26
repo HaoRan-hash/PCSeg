@@ -1,5 +1,7 @@
 from .semantickitti import SemantickittiDataset
+from .semantickitti_multiscan import SemantickittiMultiscanDataset
 from .semantickitti_rv import SemkittiRangeViewDataset
 from .semantickitti_cylinder import SemkittiCylinderDataset
 from .semantickitti_voxel import SemkittiVoxelDataset
 from .semantickitti_fusion import SemkittiFusionDataset
+from .semantickitti_multiscan_cylinder import SemkittiMultiscanCylinderDataset
